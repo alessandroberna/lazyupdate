@@ -4,8 +4,11 @@
 # Copyright © 2025 Alessandro Bernardello
 set -e
 # ARG_OPTIONAL_SINGLE([config],[c],[path to config],[/etc/lazyupdater.conf])
-# ARG_OPTIONAL_SINGLE([no-gum],[],[do not use gum even if detected],[false])
-# ARG_OPTIONAL_SINGLE([no-hooks],[],[disable hook execution],[false])
+# ARG_OPTIONAL_BOOLEAN([gum],[],[use gum for nicer output],[on])
+# ARG_OPTIONAL_BOOLEAN([quiet],[q],[suppress most output],[off])
+# ARG_OPTIONAL_BOOLEAN([hooks],[],[process hooks],[on])
+# ARG_VERBOSE([v])
+# ARG_POSITIONAL_DOUBLEDASH([])
 # ARG_POSITIONAL_SINGLE([version],[version to write in the pkgbuild])
 # ARG_HELP([An helper tool to update pkgbuilds.])
 # ARGBASH_GO()
@@ -26,7 +29,7 @@ die()
 
 begins_with_short_option()
 {
-	local first_option all_short_options='ch'
+	local first_option all_short_options='cvh'
 	first_option="${1:0:1}"
 	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -35,18 +38,20 @@ begins_with_short_option()
 _positionals=()
 # THE DEFAULTS INITIALIZATION - OPTIONALS
 _arg_config="/etc/lazyupdater.conf"
-_arg_no_gum="false"
-_arg_no_hooks="false"
+_arg_gum="on"
+_arg_hooks="on"
+_arg_verbose=0
 
 
 print_help()
 {
 	printf '%s\n' "An helper tool to update pkgbuilds."
-	printf 'Usage: %s [-c|--config <arg>] [--no-gum <arg>] [--no-hooks <arg>] [-h|--help] <version>\n' "$0"
+	printf 'Usage: %s [-c|--config <arg>] [--(no-)gum] [--(no-)hooks] [-v|--verbose] [-h|--help] [--] <version>\n' "$0"
 	printf '\t%s\n' "<version>: version to write in the pkgbuild"
 	printf '\t%s\n' "-c, --config: path to config (default: '/etc/lazyupdater.conf')"
-	printf '\t%s\n' "--no-gum: do not use gum even if detected (default: 'false')"
-	printf '\t%s\n' "--no-hooks: disable hook execution (default: 'false')"
+	printf '\t%s\n' "--gum, --no-gum: use gum for nicer output (on by default)"
+	printf '\t%s\n' "--hooks, --no-hooks: process hooks (on by default)"
+	printf '\t%s\n' "-v, --verbose: Set verbose output (can be specified multiple times to increase the effect)"
 	printf '\t%s\n' "-h, --help: Prints help"
 }
 
@@ -57,6 +62,16 @@ parse_commandline()
 	while test $# -gt 0
 	do
 		_key="$1"
+		if test "$_key" = '--'
+		then
+			shift
+			test $# -gt 0 || break
+			_positionals+=("$@")
+			_positionals_count=$((_positionals_count + $#))
+			shift $(($# - 1))
+			_last_positional="$1"
+			break
+		fi
 		case "$_key" in
 			-c|--config)
 				test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
@@ -69,21 +84,24 @@ parse_commandline()
 			-c*)
 				_arg_config="${_key##-c}"
 				;;
-			--no-gum)
-				test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
-				_arg_no_gum="$2"
-				shift
+			--no-gum|--gum)
+				_arg_gum="on"
+				test "${1:0:5}" = "--no-" && _arg_gum="off"
 				;;
-			--no-gum=*)
-				_arg_no_gum="${_key##--no-gum=}"
+			--no-hooks|--hooks)
+				_arg_hooks="on"
+				test "${1:0:5}" = "--no-" && _arg_hooks="off"
 				;;
-			--no-hooks)
-				test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
-				_arg_no_hooks="$2"
-				shift
+			-v|--verbose)
+				_arg_verbose=$((_arg_verbose + 1))
 				;;
-			--no-hooks=*)
-				_arg_no_hooks="${_key##--no-hooks=}"
+			-v*)
+				_arg_verbose=$((_arg_verbose + 1))
+				_next="${_key##-v}"
+				if test -n "$_next" -a "$_next" != "$_key"
+				then
+					{ begins_with_short_option "$_next" && shift && set -- "-v" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
+				fi
 				;;
 			-h|--help)
 				print_help
@@ -136,18 +154,37 @@ assign_positional_args 1 "${_positionals[@]}"
 # [ <-- needed because of Argbash
 
 
-#
+# Prints according to verbosity level
+# Levels: 1 - info (argbash makes it start from 1)
+#         2 - debug
+# Arguments:
+#   $1: Text to print
+#   $2: Min verbosity level
+# Outputs:
+#   Prints to stdout
+logPrint() {
+  if [ "$_arg_quiet" = "on" ]; then
+	return
+  fi
+  local time
+  time=$(date +"%T")
+  local log_level=$_arg_verbose
+  if [ "$log_level" -gt 2 ]; then
+    log_level=2
+  fi
+  local log_level_name=""
+  case "$2" in
+    1) log_level_name="info: " ;;
+    2) log_level_name="debug: " ;;
+  esac
+  if [ "$log_level" -ge "$2" ]; then
+	printf "[%s] %s%s\n" "$time" "$log_level_name" "$1"
+  fi
+}
+
 main () {
-if  "$#" -ne 1 ; then
-  echo "Usage: $0 <new_version>"
-  exit 1
-fi
-
-new_version="$1"
-
-if  ! -f "PKGBUILD" ; then
-  echo "Error: PKGBUILD file not found in the current directory."
-  exit 1
+if [ ! -f _arg_config ] ; then
+  logPrint "Config file not found, using default settings" 1
 fi
 
 # update pkgver before sourcing
