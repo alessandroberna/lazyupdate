@@ -7,6 +7,7 @@ set -e
 # ARG_OPTIONAL_BOOLEAN([gum],[],[use gum for nicer output],[on])
 # ARG_OPTIONAL_BOOLEAN([quiet],[q],[suppress most output],[off])
 # ARG_OPTIONAL_BOOLEAN([hooks],[],[process hooks],[on])
+# ARG_OPTIONAL_BOOLEAN([install],[],[install the package after building. disabling this also disables hooks],[on])
 # ARG_VERBOSE([v])
 # ARG_POSITIONAL_DOUBLEDASH([])
 # ARG_POSITIONAL_SINGLE([version],[version to write in the pkgbuild])
@@ -37,16 +38,18 @@ _arg_config="/etc/lazyupdater.conf"
 _arg_gum="on"
 _arg_quiet="off"
 _arg_hooks="on"
+_arg_install="on"
 _arg_verbose=0
 
 print_help() {
 	printf '%s\n' "An helper tool to update pkgbuilds."
-	printf 'Usage: %s [-c|--config <arg>] [--(no-)gum] [-q|--(no-)quiet] [--(no-)hooks] [-v|--verbose] [-h|--help] [--] <version>\n' "$0"
+	printf 'Usage: %s [-c|--config <arg>] [--(no-)gum] [-q|--(no-)quiet] [--(no-)hooks] [--(no-)install] [-v|--verbose] [-h|--help] [--] <version>\n' "$0"
 	printf '\t%s\n' "<version>: version to write in the pkgbuild"
 	printf '\t%s\n' "-c, --config: path to config (default: '/etc/lazyupdater.conf')"
 	printf '\t%s\n' "--gum, --no-gum: use gum for nicer output (on by default)"
 	printf '\t%s\n' "-q, --quiet, --no-quiet: suppress most output (off by default)"
 	printf '\t%s\n' "--hooks, --no-hooks: process hooks (on by default)"
+	printf '\t%s\n' "--install, --no-install: install the package after building. disabling this also disables hooks (on by default)"
 	printf '\t%s\n' "-v, --verbose: Set verbose output (can be specified multiple times to increase the effect)"
 	printf '\t%s\n' "-h, --help: Prints help"
 }
@@ -94,6 +97,10 @@ parse_commandline() {
 		--no-hooks | --hooks)
 			_arg_hooks="on"
 			test "${1:0:5}" = "--no-" && _arg_hooks="off"
+			;;
+		--no-install | --install)
+			_arg_install="on"
+			test "${1:0:5}" = "--no-" && _arg_install="off"
 			;;
 		-v | --verbose)
 			_arg_verbose=$((_arg_verbose + 1))
@@ -240,7 +247,7 @@ install() {
 	# shellcheck disable=SC1091
 	source /etc/makepkg.conf
 	# shellcheck disable=SC2154
-	sudo pacman -U "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
+	sudo pacman --noconfirm -U "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
 }
 
 main() {
@@ -261,7 +268,9 @@ main() {
 	gumSpinner "Generating .SRCINFO" makepkg --printsrcinfo >.SRCINFO
 	gumSpinner "Building package" makepkg -f
 
-	install
+	if [ "$_arg_install" = "on" ]; then
+		install
+	fi
 }
 
 main "$@"
