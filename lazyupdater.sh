@@ -243,6 +243,22 @@ gumSpinner() {
 	fi
 }
 
+# Installs a compiled package in the current directory
+# Inputs:
+#   None
+# Globals:
+#   None
+# Outputs:
+#   None
+install(){
+	# shellcheck disable=SC1091
+	source PKGBUILD
+	# shellcheck disable=SC1091
+	source /etc/makepkg.conf
+	# shellcheck disable=SC2154
+	sudo pacman -U "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
+}
+
 main () {
 	checkGum
 	if [ ! -f _arg_config ] ; then
@@ -261,10 +277,8 @@ main () {
 	gumSpinner "Generating .SRCINFO" makepkg --printsrcinfo > .SRCINFO
 	gumSpinner "Building package" makepkg -f
 
-	# shellcheck disable=SC2154
-	# todo: use actual $ARCH instead of hardcoding
-	# todo: read package extension from makepkg.conf
-	sudo pacman -U "$pkgname"-"$pkgver"-"$pkgrel"-x86_64.pkg.tar.zst
+	
+
 }
 
 main "$@"
