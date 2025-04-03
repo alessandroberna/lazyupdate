@@ -170,9 +170,6 @@ assign_positional_args 1 "${_positionals[@]}"
 # GLOBALS
 GUM=false
 
-
-
-
 # Prints according to verbosity level
 # Levels: 1 - info (argbash makes it start from 1)
 #         2 - debug
@@ -185,20 +182,24 @@ logPrint() {
   if [ "$_arg_quiet" = "on" ]; then
 	return
   fi
-  local time
-  time=$(date +"%T")
   local log_level=$_arg_verbose
   if [ "$log_level" -gt 2 ]; then
-    log_level=2
+  	  log_level=2
   fi
   local log_level_name=""
   case "$2" in
-	0) log_level_name="warn: " ;;
-    1) log_level_name="info: " ;;
-    2) log_level_name="debug: " ;;
+		0) log_level_name="warn" ;;
+  	  	1) log_level_name="info" ;;
+  	  	2) log_level_name="debug" ;;
   esac
-  if [ "$log_level" -ge "$2" ]; then
-	printf "[%s] %s%s\n" "$time" "$log_level_name" "$1"
+  if $GUM; then 
+	gum log -l "$log_level_name" "$1"
+  else
+  	local time
+  	time=$("%T")
+	if [ "$log_level" -ge "$2" ]; then
+		printf "[%s] %s: %s\n" "$time" "${log_level_name^^}" "$1"
+  	fi
   fi
 }
 
@@ -276,9 +277,8 @@ main () {
 	gumSpinner "Updating checksums" updpkgsums
 	gumSpinner "Generating .SRCINFO" makepkg --printsrcinfo > .SRCINFO
 	gumSpinner "Building package" makepkg -f
-
 	
-
+	install
 }
 
 main "$@"
