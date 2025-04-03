@@ -258,15 +258,59 @@ install() {
 	sudo pacman --noconfirm -U "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
 }
 
-main() {
-	checkGum
+
+# Reads config for HOOKDIR and runs hooks corresponding
+# to the current package, if found 
+# Inputs:
+# $1: Package name
+# Globals:
+# none
+# Outputs:
+# none
+runHooks()
+{
 	if [ ! -f _arg_config ]; then
-		logPrint "Config file not found, using default settings" 0
+		logPrint "Config file not found, skpping hooks" 0
+		return
 	else
-		logPrint "Config file found, using settings" 1
+		logPrint "using config file: $_arg_config" 2
 		# shellcheck source=/dev/null
 		source _arg_config
 	fi
+	if [ -d "$HOOKDIR" ]; then
+		logPrint "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
+		return
+	fi
+	if [ -d "$HOOKDIR" ]; then
+		logPrint "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
+		return
+	fi
+	if [ ! -d "$HOOKDIR/$pkgname" ]; then
+		logPrint "No hooks found for $pkgname, skipping" 1
+		return
+	fi
+	# populate an array with all hooks with extensions present in HOOKEXTS
+	local hooks=()
+	for ext in $HOOKEXTS; do
+		hooks+=("$HOOKDIR/$pkgname/*$ext")
+	done
+	if [ ${#hooks[@]} -eq 0 ]; then
+		logPrint "No hooks found for $pkgname, skipping" 1
+		return
+	fi
+	logPrint "Running hooks for $pkgname" 1
+	for hook in "${hooks[@]}"; do
+		if [ -f "$hook" ]; then
+			logPrint "Running hook: $hook" 1
+			gumSpinner "Running hook: $hook" bash "$hook"
+		else
+			logPrint "Cannot access hook: $hook" 0
+		fi
+	done
+}
+
+main() {
+	checkGum
 
 	# update pkgver before sourcing
 	logPrint "Updating PKGBUILD" 1
