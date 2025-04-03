@@ -9,9 +9,10 @@ url="https://github.com/glanceapp/glance"
 license=('GPL-3.0-only')
 depends=('glibc' 'bash')
 source=("lazyupdater.sh" "lazyupdater.conf")
-b2sums=('0b20aa87c31835d161aa1997f7b9ee282e6735041ece1944c810955d11546cae4cb3f3e403e79c6664bd0f628fb10a4c683160874a629c6d35904e7eb3fd5c04')
+b2sums=('0ead197dbc1f5b0c06638f88a9c6f805f4a4993e706ada41125e880adc76d154a9ac876407ca381c915d9badba13325b4c3850240828e28e08c0a98170343fcf'
+        'b77fe55b9e2cd0a1ac42cb5f2bb0503e62215269286dc112a352a7b8d8de7cfbb8c38a36a2bc7263315ee1966872eb8b55f1ff7a1593c4e59785965207a3ff57')
 
 package() {
-    install -Dm644 "$srcdir/lazyupdater.sh" "$pkgdir/etc/lzu"
+    install -Dm755 "$srcdir/lazyupdater.sh" "$pkgdir/usr/bin/lzu"
     install -Dm644 "$srcdir/lazyupdater.conf" "$pkgdir/etc/lazyupdater.conf"
 }
