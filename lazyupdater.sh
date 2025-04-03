@@ -1,13 +1,14 @@
 #!/bin/bash
-# This script updates the pkgver value in a PKGBUILD file.
-# Usage: ./update_pkgver.sh <new_version>
 # Copyright © 2025 Alessandro Bernardello
 set -e
 # ARG_OPTIONAL_SINGLE([config],[c],[path to config],[/etc/lazyupdater.conf])
 # ARG_OPTIONAL_BOOLEAN([gum],[],[use gum for nicer output],[on])
 # ARG_OPTIONAL_BOOLEAN([quiet],[q],[suppress most output],[off])
+# ARG_OPTIONAL_BOOLEAN([check],[],[checks pkgbuild and built package with namcap],[on])
+# ARG_OPTIONAL_BOOLEAN([build],[],[build the updated package],[on])
+# ARG_OPTIONAL_BOOLEAN([install],[],[ install the package after building. disabling this implies disabling hooks],[on])
 # ARG_OPTIONAL_BOOLEAN([hooks],[],[process hooks],[on])
-# ARG_OPTIONAL_BOOLEAN([install],[],[install the package after building. disabling this also disables hooks],[on])
+# ARG_OPTIONAL_BOOLEAN([edit-config],[e],[edit the config file interactively],[off])
 # ARG_VERBOSE([v])
 # ARG_POSITIONAL_DOUBLEDASH([])
 # ARG_POSITIONAL_SINGLE([version],[version to write in the pkgbuild])
@@ -26,7 +27,7 @@ die() {
 }
 
 begins_with_short_option() {
-	local first_option all_short_options='cqvh'
+	local first_option all_short_options='cqevh'
 	first_option="${1:0:1}"
 	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
 }
@@ -37,19 +38,25 @@ _positionals=()
 _arg_config="/etc/lazyupdater.conf"
 _arg_gum="on"
 _arg_quiet="off"
-_arg_hooks="on"
+_arg_check="on"
+_arg_build="on"
 _arg_install="on"
+_arg_hooks="on"
+_arg_edit_config="off"
 _arg_verbose=0
 
 print_help() {
 	printf '%s\n' "An helper tool to update pkgbuilds."
-	printf 'Usage: %s [-c|--config <arg>] [--(no-)gum] [-q|--(no-)quiet] [--(no-)hooks] [--(no-)install] [-v|--verbose] [-h|--help] [--] <version>\n' "$0"
+	printf 'Usage: %s [-c|--config <arg>] [--(no-)gum] [-q|--(no-)quiet] [--(no-)check] [--(no-)build] [--(no-)install] [--(no-)hooks] [-e|--(no-)edit-config] [-v|--verbose] [-h|--help] [--] <version>\n' "$0"
 	printf '\t%s\n' "<version>: version to write in the pkgbuild"
 	printf '\t%s\n' "-c, --config: path to config (default: '/etc/lazyupdater.conf')"
 	printf '\t%s\n' "--gum, --no-gum: use gum for nicer output (on by default)"
 	printf '\t%s\n' "-q, --quiet, --no-quiet: suppress most output (off by default)"
+	printf '\t%s\n' "--check, --no-check: checks pkgbuild and built package with namcap (on by default)"
+	printf '\t%s\n' "--build, --no-build: build the updated package (on by default)"
+	printf '\t%s\n' "--install, --no-install:  install the package after building. disabling this implies disabling hooks (on by default)"
 	printf '\t%s\n' "--hooks, --no-hooks: process hooks (on by default)"
-	printf '\t%s\n' "--install, --no-install: install the package after building. disabling this also disables hooks (on by default)"
+	printf '\t%s\n' "-e, --edit-config, --no-edit-config: edit the config file interactively (off by default)"
 	printf '\t%s\n' "-v, --verbose: Set verbose output (can be specified multiple times to increase the effect)"
 	printf '\t%s\n' "-h, --help: Prints help"
 }
@@ -79,7 +86,7 @@ parse_commandline() {
 		-c*)
 			_arg_config="${_key##-c}"
 			;;
-		--no-gum | --gum)null
+		--no-gum | --gum)
 			_arg_gum="on"
 			test "${1:0:5}" = "--no-" && _arg_gum="off"
 			;;
@@ -94,13 +101,32 @@ parse_commandline() {
 				{ begins_with_short_option "$_next" && shift && set -- "-q" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
 			fi
 			;;
-		--no-hooks | --hooks)
-			_arg_hooks="on"
-			test "${1:0:5}" = "--no-" && _arg_hooks="off"
+		--no-check | --check)
+			_arg_check="on"
+			test "${1:0:5}" = "--no-" && _arg_check="off"
+			;;
+		--no-build | --build)
+			_arg_build="on"
+			test "${1:0:5}" = "--no-" && _arg_build="off"
 			;;
 		--no-install | --install)
 			_arg_install="on"
 			test "${1:0:5}" = "--no-" && _arg_install="off"
+			;;
+		--no-hooks | --hooks)
+			_arg_hooks="on"
+			test "${1:0:5}" = "--no-" && _arg_hooks="off"
+			;;
+		-e | --no-edit-config | --edit-config)
+			_arg_edit_config="on"
+			test "${1:0:5}" = "--no-" && _arg_edit_config="off"
+			;;
+		-e*)
+			_arg_edit_config="on"
+			_next="${_key##-e}"
+			if test -n "$_next" -a "$_next" != "$_key"; then
+				{ begins_with_short_option "$_next" && shift && set -- "-e" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
+			fi
 			;;
 		-v | --verbose)
 			_arg_verbose=$((_arg_verbose + 1))
@@ -130,12 +156,6 @@ parse_commandline() {
 	done
 }
 
-handle_passed_args_count() {
-	local _required_args_string="'version'"
-	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
-	test "${_positionals_count}" -le 1 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect exactly 1 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
-}
-
 assign_positional_args() {
 	local _positional_name _shift_for=$1
 	_positional_names="_arg_version "
@@ -149,13 +169,23 @@ assign_positional_args() {
 }
 
 parse_commandline "$@"
-handle_passed_args_count
 assign_positional_args 1 "${_positionals[@]}"
 
 # OTHER STUFF GENERATED BY Argbash
 
 ### END OF CODE GENERATED BY Argbash (sortof) ### ])
 # [ <-- needed because of Argbash
+
+# Workaround for unsupported Argbash feature
+handle_passed_args_count() {
+	if [ "$_arg_edit_config" = "on" ]; then
+		return
+	fi
+	local _required_args_string="'version'"
+	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+	test "${_positionals_count}" -le 1 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect exactly 1 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
+}
+handle_passed_args_count
 
 # GLOBALS
 GUM=false
@@ -186,31 +216,10 @@ logPrint() {
 		gum log -l "$log_level_name" "$1"
 	else
 		local time
-		time=$("%T")
+		time=$(date +"%T")
 		if [ "$log_level" -ge "$2" ]; then
 			printf "[%s] %s: %s\n" "$time" "${log_level_name^^}" "$1"
 		fi
-	fi
-}
-
-# Checks if gum is available and enabled
-# Inputs:
-#   None
-# Globals:
-#   _arg_gum: gum flag
-#   GUM: global flag
-# Outputs:
-#   None
-checkGum() {
-	if [ "$_arg_gum" = "on" ]; then
-		if command -v gum >/dev/null 2>&1; then
-			GUM=true
-			logPrint "gum found, using it for nicer output" 2
-		else
-			logPrint "gum not found, falling back to standard output" 2
-		fi
-	else
-		logPrint "gum disabled by user" 2
 	fi
 }
 
@@ -228,17 +237,17 @@ gumSpinner() {
 	shift
 	if $GUM; then
 		local printArg=""
-		if [ "$_arg_quiet" = "off" ]; then 
-			printArg="--show-output" 
+		if [ "$_arg_quiet" = "off" ]; then
+			printArg="--show-output"
 		fi
 		gum spin --title "$message" "$printArg" -- "$@"
 	else
-        if [ "$_arg_quiet" = "off" ]; then
-            logPrint "$message" 1
-            "$@"
-        else
-            "$@" >/dev/null 2>&1
-        fi
+		if [ "$_arg_quiet" = "off" ]; then
+			logPrint "$message" 1
+			"$@"
+		else
+			"$@" >/dev/null 2>&1
+		fi
 	fi
 }
 
@@ -258,17 +267,15 @@ install() {
 	sudo pacman --noconfirm -U "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
 }
 
-
 # Reads config for HOOKDIR and runs hooks corresponding
-# to the current package, if found 
+# to the current package, if found
 # Inputs:
 # $1: Package name
 # Globals:
 # none
 # Outputs:
 # none
-runHooks()
-{
+runHooks() {
 	if [ ! -f _arg_config ]; then
 		logPrint "Config file not found, skpping hooks" 0
 		return
@@ -309,23 +316,182 @@ runHooks()
 	done
 }
 
-main() {
-	checkGum
-
-	# update pkgver before sourcing
+# Bumps version in the PKGBUILD file, updates checksums and generates .SRCINFO
+# Inputs:
+#   None
+# Globals:
+#   _arg_version: version to write in the pkgbuild
+# Outputs:
+#   None
+bumpVersion() {
 	logPrint "Updating PKGBUILD" 1
 	# shellcheck disable=SC2154
 	gumSpinner "Updating PKGBUILD" sed -i "s/^\(pkgver=\).*/\1${_arg_version}/" PKGBUILD
 	gumSpinner "Updating checksums" updpkgsums
 	gumSpinner "Generating .SRCINFO" makepkg --printsrcinfo >.SRCINFO
-	gumSpinner "Building package" makepkg -f
+}
 
-	if [ "$_arg_install" = "on" ]; then
-		install
-		if [ "$_arg_hooks" = "on" ]; then
-			runHooks "$pkgname"
+updatePkg() {
+	bumpVersion
+	if [ $_arg_check = "on" ]; then
+		gumSpinner "Running namcap on PKGBUILD" namcap PKGBUILD
+	fi
+	if [ $_arg_build = "on" ]; then
+		gumSpinner "Building package" makepkg -f
+		if [ "$_arg_install" = "on" ]; then
+			install
 		fi
 	fi
+	if [ "$_arg_hooks" = "on" ]; then
+		runHooks "$pkgname"
+	fi
+}
+
+sanitizeFlags() {
+	if [ "$_arg_verbose" -gt 0 ] && [ "$_arg_quiet" = "on" ]; then
+		logPrint "Quiet mode and verbose mode are mutually exclusive. Setting quiet mode to off" 0
+		_arg_quiet="off"
+	fi
+	cascading_flags=(build install hooks)
+	local cascading=false
+	local previous_flag=""
+	for flag in "${cascading_flags[@]}"; do
+		var="_arg_${flag}"
+		if [ $cascading ]; then
+			logPrint "Setting $flag to off since $previous_flag is off" 1
+			eval "$var=off"
+		fi
+		if [ "${!var}" = "off" ]; then
+			cascading=true
+			previous_flag=$flag
+		fi
+	done
+	if [ "$_arg_gum" = "on" ]; then
+		if command -v gum >/dev/null 2>&1; then
+			GUM=true
+			logPrint "gum found, using it for nicer output" 2
+		else
+			if [ "$_arg_edit_config" = "on" ]; then
+				die "gum not found, please install it to use the interactive config editor" 1
+			fi
+			logPrint "gum not found, falling back to standard output" 2
+		fi
+	else
+		logPrint "gum disabled by user" 2
+	fi
+
+}
+
+createDefaultConfig() {
+	local config_file="/etc/lazyupdater.conf"
+	logPrint "Creating default config file at $config_file" 1
+	config_content=$(
+		cat <<'EOF'
+# Config file for lazyupdater
+# This file gets directly sourced with bash, please don't put spaces in assignments
+#
+# HOOKDIR: Directory where hooks are stored.
+# HOOKEXTS: Allowed extensions for hooks. All files matching this pattern will be executed.
+#           Lazyupdate will simply execute the file(s), use shebangs and make sure files are executable
+HOOKDIR="$HOME/repos/lzhooks"
+HOOKEXTS=("*.sh" "*.bash" "*.zsh" "*.fish" "*.py")
+EOF
+	)
+	if gum confirm "Automatic config creation requires sudo privileges. Do you want to proceed?"; then
+		echo "$config_content" | sudo tee "$config_file" >/dev/null
+	else
+		echo "add the following lines to $config_file"
+		echo "$config_content"
+	fi
+}
+
+chooseEditor() {
+	local installedEditors=()
+	local sanEDITOR=""
+	if [ -n "$EDITOR" ]; then
+		installedEditors+=("$EDITOR [Default]")
+		sanEDITOR=$EDITOR
+	fi
+	checkEditors=(
+		"vim"
+		"nano"
+		"micro"
+		"emacs"
+		"gedit"
+		"code"
+		"zed"
+		"nvim"
+		"atom"
+		"kate"
+		"subl"
+		"pluma"
+		"leafpad"
+	)
+	for editor in "${checkEditors[@]}"; do
+		if [ "$editor" != "$sanEDITOR" ] && command -v "$editor" >/dev/null 2>&1; then
+			installedEditors+=("$editor")
+		fi
+	done
+
+	selectedEditor=$(gum filter --placeholder "Choose an editor" --limit 1 "${installedEditors[@]}") #--height 20 --width 40 
+	if [ -z "$selectedEditor" ]; then
+		die "Internal error: no editor selected" 1
+	fi
+	echo "$selectedEditor"
+}
+
+createHookDir() {
+	local hookdir="$1"
+	if [ -z "$hookdir" ]; then
+		die "Internal error: createHookDir(): hook directory not specified" 1
+	fi
+	if gum confirm "Want to clone an existing hook repo?"; then
+		local repo_url
+		repo_url=$(gum input --placeholder "Enter the URL of the hook repo")
+		git clone "$repo_url" "$hookdir"
+	else
+		mkdir -p "$hookdir"
+		logPrint "Created hook directory: $hookdir" 1
+	fi
+}
+
+editConfig() {
+	if [ ! -f _arg_config ]; then
+		if gum confirm "Config file not found, create a new one?"; then
+			createDefaultConfig
+		else
+			die "Config file not found, please create one" 1
+		fi
+	fi
+	editor=$(chooseEditor)
+	if [ -z "$editor" ]; then
+		die "Internal error: no editor selected" 1
+	fi
+	${editor} "$_arg_config" || die "Failed to open config file with $editor" 1
+	# shellcheck disable=SC1090
+	source "$_arg_config"
+	if [ -z "$HOOKDIR" ]; then
+		gum confirm "No HOOKDIR found in config file, do you want to create one?" && {
+			while [ -z "$HOOKDIR" ]; do
+				HOOKDIR=$(gum input --placeholder "Enter the path to the hooks directory")
+			done
+			echo "HOOKDIR=\"$HOOKDIR\"" >>"$config_file"
+			createHookDir "$HOOKDIR"
+		}
+	fi
+	if [ ! -d "$HOOKDIR" ]; then
+		createHookDir "$HOOKDIR"
+	fi
+}
+
+main() {
+	sanitizeFlags
+	if [ "$_arg_edit_config" = "on" ]; then
+		editConfig
+	else
+		updatePkg
+	fi
+	exit 0
 }
 
 main "$@"
