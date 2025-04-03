@@ -17,18 +17,14 @@ set -e
 # Argbash is a bash code generator used to get arguments parsing right.
 # Argbash is FREE SOFTWARE, see https://argbash.io for more info
 
-
-die()
-{
+die() {
 	local _ret="${2:-1}"
 	test "${_PRINT_HELP:-no}" = yes && print_help >&2
 	echo "$1" >&2
 	exit "${_ret}"
 }
 
-
-begins_with_short_option()
-{
+begins_with_short_option() {
 	local first_option all_short_options='cqvh'
 	first_option="${1:0:1}"
 	test "$all_short_options" = "${all_short_options/$first_option/}" && return 1 || return 0
@@ -43,9 +39,7 @@ _arg_quiet="off"
 _arg_hooks="on"
 _arg_verbose=0
 
-
-print_help()
-{
+print_help() {
 	printf '%s\n' "An helper tool to update pkgbuilds."
 	printf 'Usage: %s [-c|--config <arg>] [--(no-)gum] [-q|--(no-)quiet] [--(no-)hooks] [-v|--verbose] [-h|--help] [--] <version>\n' "$0"
 	printf '\t%s\n' "<version>: version to write in the pkgbuild"
@@ -57,15 +51,11 @@ print_help()
 	printf '\t%s\n' "-h, --help: Prints help"
 }
 
-
-parse_commandline()
-{
+parse_commandline() {
 	_positionals_count=0
-	while test $# -gt 0
-	do
+	while test $# -gt 0; do
 		_key="$1"
-		if test "$_key" = '--'
-		then
+		if test "$_key" = '--'; then
 			shift
 			test $# -gt 0 || break
 			_positionals+=("$@")
@@ -75,83 +65,76 @@ parse_commandline()
 			break
 		fi
 		case "$_key" in
-			-c|--config)
-				test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
-				_arg_config="$2"
-				shift
-				;;
-			--config=*)
-				_arg_config="${_key##--config=}"
-				;;
-			-c*)
-				_arg_config="${_key##-c}"
-				;;
-			--no-gum|--gum)
-				_arg_gum="on"
-				test "${1:0:5}" = "--no-" && _arg_gum="off"
-				;;
-			-q|--no-quiet|--quiet)
-				_arg_quiet="on"
-				test "${1:0:5}" = "--no-" && _arg_quiet="off"
-				;;
-			-q*)
-				_arg_quiet="on"
-				_next="${_key##-q}"
-				if test -n "$_next" -a "$_next" != "$_key"
-				then
-					{ begins_with_short_option "$_next" && shift && set -- "-q" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
-				fi
-				;;
-			--no-hooks|--hooks)
-				_arg_hooks="on"
-				test "${1:0:5}" = "--no-" && _arg_hooks="off"
-				;;
-			-v|--verbose)
-				_arg_verbose=$((_arg_verbose + 1))
-				;;
-			-v*)
-				_arg_verbose=$((_arg_verbose + 1))
-				_next="${_key##-v}"
-				if test -n "$_next" -a "$_next" != "$_key"
-				then
-					{ begins_with_short_option "$_next" && shift && set -- "-v" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
-				fi
-				;;
-			-h|--help)
-				print_help
-				exit 0
-				;;
-			-h*)
-				print_help
-				exit 0
-				;;
-			*)
-				_last_positional="$1"
-				_positionals+=("$_last_positional")
-				_positionals_count=$((_positionals_count + 1))
-				;;
+		-c | --config)
+			test $# -lt 2 && die "Missing value for the optional argument '$_key'." 1
+			_arg_config="$2"
+			shift
+			;;
+		--config=*)
+			_arg_config="${_key##--config=}"
+			;;
+		-c*)
+			_arg_config="${_key##-c}"
+			;;
+		--no-gum | --gum)
+			_arg_gum="on"
+			test "${1:0:5}" = "--no-" && _arg_gum="off"
+			;;
+		-q | --no-quiet | --quiet)
+			_arg_quiet="on"
+			test "${1:0:5}" = "--no-" && _arg_quiet="off"
+			;;
+		-q*)
+			_arg_quiet="on"
+			_next="${_key##-q}"
+			if test -n "$_next" -a "$_next" != "$_key"; then
+				{ begins_with_short_option "$_next" && shift && set -- "-q" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
+			fi
+			;;
+		--no-hooks | --hooks)
+			_arg_hooks="on"
+			test "${1:0:5}" = "--no-" && _arg_hooks="off"
+			;;
+		-v | --verbose)
+			_arg_verbose=$((_arg_verbose + 1))
+			;;
+		-v*)
+			_arg_verbose=$((_arg_verbose + 1))
+			_next="${_key##-v}"
+			if test -n "$_next" -a "$_next" != "$_key"; then
+				{ begins_with_short_option "$_next" && shift && set -- "-v" "-${_next}" "$@"; } || die "The short option '$_key' can't be decomposed to ${_key:0:2} and -${_key:2}, because ${_key:0:2} doesn't accept value and '-${_key:2:1}' doesn't correspond to a short option."
+			fi
+			;;
+		-h | --help)
+			print_help
+			exit 0
+			;;
+		-h*)
+			print_help
+			exit 0
+			;;
+		*)
+			_last_positional="$1"
+			_positionals+=("$_last_positional")
+			_positionals_count=$((_positionals_count + 1))
+			;;
 		esac
 		shift
 	done
 }
 
-
-handle_passed_args_count()
-{
+handle_passed_args_count() {
 	local _required_args_string="'version'"
 	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
 	test "${_positionals_count}" -le 1 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect exactly 1 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
 }
 
-
-assign_positional_args()
-{
+assign_positional_args() {
 	local _positional_name _shift_for=$1
 	_positional_names="_arg_version "
 
 	shift "$_shift_for"
-	for _positional_name in ${_positional_names}
-	do
+	for _positional_name in ${_positional_names}; do
 		test $# -gt 0 || break
 		eval "$_positional_name=\${1}" || die "Error during argument parsing, possibly an Argbash bug." 1
 		shift
@@ -179,28 +162,28 @@ GUM=false
 # Outputs:
 #   Prints to stdout
 logPrint() {
-  if [ "$_arg_quiet" = "on" ]; then
-	return
-  fi
-  local log_level=$_arg_verbose
-  if [ "$log_level" -gt 2 ]; then
-  	  log_level=2
-  fi
-  local log_level_name=""
-  case "$2" in
-		0) log_level_name="warn" ;;
-  	  	1) log_level_name="info" ;;
-  	  	2) log_level_name="debug" ;;
-  esac
-  if $GUM; then 
-	gum log -l "$log_level_name" "$1"
-  else
-  	local time
-  	time=$("%T")
-	if [ "$log_level" -ge "$2" ]; then
-		printf "[%s] %s: %s\n" "$time" "${log_level_name^^}" "$1"
-  	fi
-  fi
+	if [ "$_arg_quiet" = "on" ]; then
+		return
+	fi
+	local log_level=$_arg_verbose
+	if [ "$log_level" -gt 2 ]; then
+		log_level=2
+	fi
+	local log_level_name=""
+	case "$2" in
+	0) log_level_name="warn" ;;
+	1) log_level_name="info" ;;
+	2) log_level_name="debug" ;;
+	esac
+	if $GUM; then
+		gum log -l "$log_level_name" "$1"
+	else
+		local time
+		time=$("%T")
+		if [ "$log_level" -ge "$2" ]; then
+			printf "[%s] %s: %s\n" "$time" "${log_level_name^^}" "$1"
+		fi
+	fi
 }
 
 # Checks if gum is available and enabled
@@ -251,7 +234,7 @@ gumSpinner() {
 #   None
 # Outputs:
 #   None
-install(){
+install() {
 	# shellcheck disable=SC1091
 	source PKGBUILD
 	# shellcheck disable=SC1091
@@ -260,14 +243,14 @@ install(){
 	sudo pacman -U "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
 }
 
-main () {
+main() {
 	checkGum
-	if [ ! -f _arg_config ] ; then
-	  logPrint "Config file not found, using default settings" 0
+	if [ ! -f _arg_config ]; then
+		logPrint "Config file not found, using default settings" 0
 	else
-	  logPrint "Config file found, using settings" 1
-	  # shellcheck source=/dev/null
-	  source _arg_config
+		logPrint "Config file found, using settings" 1
+		# shellcheck source=/dev/null
+		source _arg_config
 	fi
 
 	# update pkgver before sourcing
@@ -275,9 +258,9 @@ main () {
 	# shellcheck disable=SC2154
 	gumSpinner "Updating PKGBUILD" sed -i "s/^\(pkgver=\).*/\1${_arg_version}/" PKGBUILD
 	gumSpinner "Updating checksums" updpkgsums
-	gumSpinner "Generating .SRCINFO" makepkg --printsrcinfo > .SRCINFO
+	gumSpinner "Generating .SRCINFO" makepkg --printsrcinfo >.SRCINFO
 	gumSpinner "Building package" makepkg -f
-	
+
 	install
 }
 
