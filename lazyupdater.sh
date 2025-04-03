@@ -232,7 +232,7 @@ checkGum() {
 #   GUM: global flag
 # Outputs:
 #   None
-gumShim() {
+gumSpinner() {
 	local message="$1"
 	shift
 	if $GUM; then
@@ -256,14 +256,10 @@ main () {
 	# update pkgver before sourcing
 	logPrint "Updating PKGBUILD" 1
 	# shellcheck disable=SC2154
-	gumShim "Updating PKGBUILD" sed -i "s/^\(pkgver=\).*/\1${_arg_version}/" PKGBUILD
-	gumShim "Updating checksums" updpkgsums
-	gumShim "Generating .SRCINFO" makepkg --printsrcinfo > .SRCINFO
-
-	# shellcheck disable=SC1091
-	source PKGBUILD
-
-	gumShim "Building package" makepkg -f
+	gumSpinner "Updating PKGBUILD" sed -i "s/^\(pkgver=\).*/\1${_arg_version}/" PKGBUILD
+	gumSpinner "Updating checksums" updpkgsums
+	gumSpinner "Generating .SRCINFO" makepkg --printsrcinfo > .SRCINFO
+	gumSpinner "Building package" makepkg -f
 
 	# shellcheck disable=SC2154
 	# todo: use actual $ARCH instead of hardcoding
