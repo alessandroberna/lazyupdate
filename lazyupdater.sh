@@ -322,6 +322,9 @@ main() {
 
 	if [ "$_arg_install" = "on" ]; then
 		install
+		if [ "$_arg_hooks" = "on" ]; then
+			runHooks "$pkgname"
+		fi
 	fi
 }
 
