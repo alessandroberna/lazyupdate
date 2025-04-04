@@ -1,7 +1,7 @@
 #!/bin/bash
 # Copyright © 2025 Alessandro Bernardello
 set -e
-# ARG_OPTIONAL_SINGLE([config],[c],[path to config],[/etc/lazyupdater.conf])
+# ARG_OPTIONAL_SINGLE([config],[c],[path to config],[/etc/lazyupdate.conf])
 # ARG_OPTIONAL_BOOLEAN([gum],[],[use gum for nicer output],[on])
 # ARG_OPTIONAL_BOOLEAN([quiet],[q],[suppress most output],[off])
 # ARG_OPTIONAL_BOOLEAN([check],[],[checks pkgbuild and built package with namcap],[on])
@@ -35,7 +35,7 @@ begins_with_short_option() {
 # THE DEFAULTS INITIALIZATION - POSITIONALS
 _positionals=()
 # THE DEFAULTS INITIALIZATION - OPTIONALS
-_arg_config="/etc/lazyupdater.conf"
+_arg_config="/etc/lazyupdate.conf"
 _arg_gum="on"
 _arg_quiet="off"
 _arg_check="on"
@@ -49,7 +49,7 @@ print_help() {
 	printf '%s\n' "An helper tool to update pkgbuilds."
 	printf 'Usage: %s [-c|--config <arg>] [--(no-)gum] [-q|--(no-)quiet] [--(no-)check] [--(no-)build] [--(no-)install] [--(no-)hooks] [-e|--(no-)edit-config] [-v|--verbose] [-h|--help] [--] <version>\n' "$0"
 	printf '\t%s\n' "<version>: version to write in the pkgbuild"
-	printf '\t%s\n' "-c, --config: path to config (default: '/etc/lazyupdater.conf')"
+	printf '\t%s\n' "-c, --config: path to config (default: '/etc/lazyupdate.conf')"
 	printf '\t%s\n' "--gum, --no-gum: use gum for nicer output (on by default)"
 	printf '\t%s\n' "-q, --quiet, --no-quiet: suppress most output (off by default)"
 	printf '\t%s\n' "--check, --no-check: checks pkgbuild and built package with namcap (on by default)"
@@ -388,10 +388,10 @@ sanitizeFlags() {
 }
 
 createDefaultConfig() {
-	local config_file="/etc/lazyupdater.conf"
+	local config_file="/etc/lazyupdate.conf"
 	config_content=$(
 		cat <<'EOF'
-# Config file for lazyupdater
+# Config file for lazyupdate
 # This file gets directly sourced with bash, please don't put spaces in assignments
 #
 # HOOKDIR: Directory where hooks are stored.
