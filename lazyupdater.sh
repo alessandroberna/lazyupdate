@@ -414,6 +414,7 @@ chooseEditor() {
 		installedEditors+=("$EDITOR [Default]")
 		sanEDITOR=$EDITOR
 	fi
+	#https://wiki.archlinux.org/title/List_of_applications/Documents#Text_editors
 	checkEditors=(
 		"vim"
 		"nano"
@@ -422,6 +423,8 @@ chooseEditor() {
 		"gedit"
 		"code"
 		"zed"
+		"kak"
+		"helix"
 		"nvim"
 		"atom"
 		"kate"
