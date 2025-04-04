@@ -456,7 +456,8 @@ createHookDir() {
 }
 
 editConfig() {
-	if [ ! -f _arg_config ]; then
+	if [ ! -f "$_arg_config" ]; then
+		log "$_arg_config not found" 2
 		if gum confirm "Config file not found, create a new one?"; then
 			createDefaultConfig
 		else
