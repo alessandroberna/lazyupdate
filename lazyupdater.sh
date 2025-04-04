@@ -201,12 +201,8 @@ GUM=false
 # Outputs:
 #   Prints to stdout
 log() {
-	if [ "$_arg_quiet" = "on" ]; then
+	if [ "$_arg_quiet" = "on" ] || [ "$2" -gt $_arg_verbose  ]; then
 		return
-	fi
-	local log_level=$_arg_verbose
-	if [ "$log_level" -gt 2 ]; then
-		log_level=2
 	fi
 	local log_level_name=""
 	case "$2" in
@@ -219,9 +215,7 @@ log() {
 	else
 		local time
 		time=$(date +"%T")
-		if [ "$log_level" -ge "$2" ]; then
 			printf "[%s] %s: %s\n" "$time" "${log_level_name^^}" "$1"
-		fi
 	fi
 }
 
@@ -425,6 +419,7 @@ chooseEditor() {
 	fi
 	#https://wiki.archlinux.org/title/List_of_applications/Documents#Text_editors
 	checkEditors=(
+		"vi"
 		"vim"
 		"nano"
 		"micro"
