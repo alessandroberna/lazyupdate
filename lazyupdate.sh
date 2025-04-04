@@ -247,6 +247,15 @@ gumSpinner() {
 	fi
 }
 
+getPKGNAME() {
+	# shellcheck disable=SC1091
+	source PKGBUILD
+	# shellcheck disable=SC1091
+	source /etc/makepkg.conf
+	# shellcheck disable=SC2154
+	echo "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
+}
+
 # Installs a compiled package in the current directory
 # Inputs:
 #   None
@@ -255,12 +264,7 @@ gumSpinner() {
 # Outputs:
 #   None
 install() {
-	# shellcheck disable=SC1091
-	source PKGBUILD
-	# shellcheck disable=SC1091
-	source /etc/makepkg.conf
-	# shellcheck disable=SC2154
-	sudo pacman --noconfirm -U "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
+	sudo pacman --noconfirm -U "$(getPKGNAME)"
 }
 
 # Reads config for HOOKDIR and runs hooks corresponding
@@ -334,6 +338,7 @@ updatePkg() {
 	fi
 	if [ $_arg_build = "on" ]; then
 		gumSpinner "Building package" makepkg -f
+		gumSpinner "Running namcap on package" namcap "$(getPKGNAME)"
 		if [ "$_arg_install" = "on" ]; then
 			install
 		fi
