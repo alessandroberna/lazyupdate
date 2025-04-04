@@ -278,7 +278,7 @@ install() {
 # Outputs:
 # none
 runHooks() {
-	if [ ! -f _arg_config ]; then
+	if [ ! -f "$_arg_config" ]; then
 		log "Config file not found, skpping hooks" 0
 		return
 	else
