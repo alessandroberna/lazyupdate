@@ -486,7 +486,11 @@ editConfig() {
 		}
 	fi
 	if [ ! -d "$HOOKDIR" ]; then
-		createHookDir "$HOOKDIR"
+		if (gum confirm "HOOKDIR is specified in the config file but does not exist. Do you want to create it?"); then 
+			createHookDir "$HOOKDIR"
+		else
+			exit 0
+		fi
 	fi
 }
 
