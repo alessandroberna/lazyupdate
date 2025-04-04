@@ -384,7 +384,6 @@ sanitizeFlags() {
 
 createDefaultConfig() {
 	local config_file="/etc/lazyupdater.conf"
-	logPrint "Creating default config file at $config_file" 1
 	config_content=$(
 		cat <<'EOF'
 # Config file for lazyupdater
@@ -398,6 +397,7 @@ HOOKEXTS=("*.sh" "*.bash" "*.zsh" "*.fish" "*.py")
 EOF
 	)
 	if gum confirm "Automatic config creation requires sudo privileges. Do you want to proceed?"; then
+		logPrint "Creating default config file at $config_file" 1
 		echo "$config_content" | sudo tee "$config_file" >/dev/null
 	else
 		echo "add the following lines to $config_file"
