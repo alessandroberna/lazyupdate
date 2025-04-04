@@ -190,6 +190,8 @@ handle_passed_args_count
 # GLOBALS
 GUM=false
 
+
+
 # Prints according to verbosity level
 # Levels: 1 - info (argbash makes it start from 1)
 #         2 - debug
@@ -198,7 +200,7 @@ GUM=false
 #   $2: Min verbosity level
 # Outputs:
 #   Prints to stdout
-logPrint() {
+log() {
 	if [ "$_arg_quiet" = "on" ]; then
 		return
 	fi
@@ -243,7 +245,7 @@ gumSpinner() {
 		gum spin --title "$message" "$printArg" -- "$@"
 	else
 		if [ "$_arg_quiet" = "off" ]; then
-			logPrint "$message" 1
+			log "$message" 1
 			"$@"
 		else
 			"$@" >/dev/null 2>&1
@@ -277,23 +279,23 @@ install() {
 # none
 runHooks() {
 	if [ ! -f _arg_config ]; then
-		logPrint "Config file not found, skpping hooks" 0
+		log "Config file not found, skpping hooks" 0
 		return
 	else
-		logPrint "using config file: $_arg_config" 2
+		log "using config file: $_arg_config" 2
 		# shellcheck source=/dev/null
 		source _arg_config
 	fi
 	if [ -d "$HOOKDIR" ]; then
-		logPrint "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
+		log "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
 		return
 	fi
 	if [ -d "$HOOKDIR" ]; then
-		logPrint "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
+		log "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
 		return
 	fi
 	if [ ! -d "$HOOKDIR/$pkgname" ]; then
-		logPrint "No hooks found for $pkgname, skipping" 1
+		log "No hooks found for $pkgname, skipping" 1
 		return
 	fi
 	# populate an array with all hooks with extensions present in HOOKEXTS
@@ -302,16 +304,16 @@ runHooks() {
 		hooks+=("$HOOKDIR/$pkgname/*$ext")
 	done
 	if [ ${#hooks[@]} -eq 0 ]; then
-		logPrint "No hooks found for $pkgname, skipping" 1
+		log "No hooks found for $pkgname, skipping" 1
 		return
 	fi
-	logPrint "Running hooks for $pkgname" 1
+	log "Running hooks for $pkgname" 1
 	for hook in "${hooks[@]}"; do
 		if [ -f "$hook" ]; then
-			logPrint "Running hook: $hook" 1
+			log "Running hook: $hook" 1
 			gumSpinner "Running hook: $hook" bash "$hook"
 		else
-			logPrint "Cannot access hook: $hook" 0
+			log "Cannot access hook: $hook" 0
 		fi
 	done
 }
@@ -324,7 +326,7 @@ runHooks() {
 # Outputs:
 #   None
 bumpVersion() {
-	logPrint "Updating PKGBUILD" 1
+	log "Updating PKGBUILD" 1
 	# shellcheck disable=SC2154
 	gumSpinner "Updating PKGBUILD" sed -i "s/^\(pkgver=\).*/\1${_arg_version}/" PKGBUILD
 	gumSpinner "Updating checksums" updpkgsums
@@ -349,7 +351,7 @@ updatePkg() {
 
 sanitizeFlags() {
 	if [ "$_arg_verbose" -gt 0 ] && [ "$_arg_quiet" = "on" ]; then
-		logPrint "Quiet mode and verbose mode are mutually exclusive. Setting quiet mode to off" 0
+		log "Quiet mode and verbose mode are mutually exclusive. Setting quiet mode to off" 0
 		_arg_quiet="off"
 	fi
 	cascading_flags=(build install hooks)
@@ -358,7 +360,7 @@ sanitizeFlags() {
 	for flag in "${cascading_flags[@]}"; do
 		var="_arg_${flag}"
 		if [ $cascading ]; then
-			logPrint "Setting $flag to off since $previous_flag is off" 1
+			log "Setting $flag to off since $previous_flag is off" 1
 			eval "$var=off"
 		fi
 		if [ "${!var}" = "off" ]; then
@@ -369,15 +371,15 @@ sanitizeFlags() {
 	if [ "$_arg_gum" = "on" ]; then
 		if command -v gum >/dev/null 2>&1; then
 			GUM=true
-			logPrint "gum found, using it for nicer output" 2
+			log "gum found, using it for nicer output" 2
 		else
 			if [ "$_arg_edit_config" = "on" ]; then
 				die "gum not found, please install it to use the interactive config editor" 1
 			fi
-			logPrint "gum not found, falling back to standard output" 2
+			log "gum not found, falling back to standard output" 2
 		fi
 	else
-		logPrint "gum disabled by user" 2
+		log "gum disabled by user" 2
 	fi
 
 }
@@ -397,7 +399,7 @@ HOOKEXTS=("*.sh" "*.bash" "*.zsh" "*.fish" "*.py")
 EOF
 	)
 	if gum confirm "Automatic config creation requires sudo privileges. Do you want to proceed?"; then
-		logPrint "Creating default config file at $config_file" 1
+		log "Creating default config file at $config_file" 1
 		echo "$config_content" | sudo tee "$config_file" >/dev/null
 	else
 		echo "add the following lines to $config_file"
@@ -451,7 +453,7 @@ createHookDir() {
 		git clone "$repo_url" "$hookdir"
 	else
 		mkdir -p "$hookdir"
-		logPrint "Created hook directory: $hookdir" 1
+		log "Created hook directory: $hookdir" 1
 	fi
 }
 
