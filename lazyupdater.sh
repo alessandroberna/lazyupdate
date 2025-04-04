@@ -381,7 +381,16 @@ sanitizeFlags() {
 	else
 		log "gum disabled by user" 2
 	fi
-
+	if [ "$_arg_edit_config" = "on" ]; then
+		if [ "$_arg_quiet" = "on" ]; then
+			log "Quiet mode and edit config mode are mutually exclusive. Setting quiet mode to off" 0
+			_arg_quiet="off"
+		fi
+	fi
+	if [ "$_arg_verbose" -gt 2 ]; then
+		log "clamping verbosity to 2" 2
+		_arg_verbose=2
+	fi
 }
 
 createDefaultConfig() {
