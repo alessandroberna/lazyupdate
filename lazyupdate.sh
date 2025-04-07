@@ -303,7 +303,8 @@ runHooks() {
 	# first i create a pattern like ".sh|.py" from HOOKEXTS
 	# then i leverage bash extended globbing 
 	shopt -s nullglob extglob
-	local ext_pattern="${HOOKEXTS// /|}"
+	local ext_pattern
+	ext_pattern=$(IFS="|"; echo "${HOOKEXTS[*]}")
 	log "extglob pattern used to lookup hooks: $ext_pattern" 2
 	local hooks=( "$HOOKDIR/$pkgname"/*@(${ext_pattern}) )
 	shopt -u nullglob extglob
