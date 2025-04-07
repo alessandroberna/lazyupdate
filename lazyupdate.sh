@@ -301,12 +301,12 @@ runHooks() {
 	fi
 	# populate an array with all hooks with extensions present in HOOKEXTS
 	# first i create a pattern like ".sh|.py" from HOOKEXTS
-	# then i leverage bash extended globbing 
+	# then i leverage bash extended globbing to populate the hooks array
 	shopt -s nullglob extglob
 	local ext_pattern
 	ext_pattern=$(IFS="|"; echo "${HOOKEXTS[*]}")
 	log "extglob pattern used to lookup hooks: $ext_pattern" 2
-	local hooks=( "$HOOKDIR/$pkgname"/*@(${ext_pattern}) )
+	hooks=( "$HOOKDIR/$pkgname"/*@(${ext_pattern}) )
 	shopt -u nullglob extglob
 	if [ ${#hooks[@]} -eq 0 ]; then
 		log "No hooks found for $pkgname, skipping" 1
