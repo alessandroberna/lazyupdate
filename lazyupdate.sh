@@ -236,6 +236,7 @@ gumSpinner() {
 		if [ "$_arg_quiet" = "off" ]; then
 			printArg="--show-output"
 		fi
+		log "gum spin --title $message $printArg -- $*"  2
 		gum spin --title "$message" "$printArg" -- "$@"
 	else
 		if [ "$_arg_quiet" = "off" ]; then
