@@ -284,6 +284,8 @@ runHooks() {
 		# shellcheck source=/dev/null
 		source "$_arg_config"
 	fi
+	local pkgname
+	pkgname=$(getPKGNAME)
 	if [ ! -d "$HOOKDIR" ]; then
 		log "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
 		return
