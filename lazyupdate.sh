@@ -300,10 +300,13 @@ runHooks() {
 		return
 	fi
 	# populate an array with all hooks with extensions present in HOOKEXTS
-	local hooks=()
-	for ext in $HOOKEXTS; do
-		hooks+=("$HOOKDIR/$pkgname/*$ext")
-	done
+	# first i create a pattern like ".sh|.py" from HOOKEXTS
+	# then i leverage bash extended globbing 
+	shopt -s nullglob extglob
+	local ext_pattern="${HOOKEXTS// /|}"
+	log "extglob pattern used to lookup hooks: $ext_pattern" 2
+	local hooks=( "$HOOKDIR/$pkgname"/*@(${ext_pattern}) )
+	shopt -u nullglob extglob
 	if [ ${#hooks[@]} -eq 0 ]; then
 		log "No hooks found for $pkgname, skipping" 1
 		return
