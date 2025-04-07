@@ -1,16 +1,28 @@
 #Maintainer: Alessandro Bernardello <aleberna at erine dot eu>
 # shellcheck shell=bash disable=SC2034,SC2154
-pkgname=lazyupdate
-pkgver=0.0.1
+pkgname=lazyupdate-git
+pkgver=r30.9dc1c65
 pkgrel=1
-pkgdesc="I am really lazy"
+pkgdesc="Automates updating PKGBUILDS"
 arch=('any')
-url="https://github.com/glanceapp/glance"
+url="https://codeberg.org/aleberna/lazyupdate"
 license=('GPL-3.0-only')
 depends=('glibc' 'bash')
-source=("lazyupdate.sh" "lazyupdate.conf")
-b2sums=('0ead197dbc1f5b0c06638f88a9c6f805f4a4993e706ada41125e880adc76d154a9ac876407ca381c915d9badba13325b4c3850240828e28e08c0a98170343fcf'
-        'b77fe55b9e2cd0a1ac42cb5f2bb0503e62215269286dc112a352a7b8d8de7cfbb8c38a36a2bc7263315ee1966872eb8b55f1ff7a1593c4e59785965207a3ff57')
+source=("git+https://codeberg.org/aleberna/lazyupdate.git"
+        "lazyupdate.conf")
+b2sums=('SKIP'
+        'e5887cd8dd46cbd15f8cda9f4ed91f010de55478f0099e64e322630f81fbb826da64d909494e54facb2344bfb0530a9f36d0df7ee9bec877454706aca1ec80e6')
+provides=("lazyupdate")
+conflicts=("lazyupdate")
+
+pkgver() {
+  cd "${srcdir}/lazyupdate" || exit 1
+  ( set -o pipefail
+    git describe --long --abbrev=7 2>/dev/null | sed 's/\([^-]*-g\)/r\1/;s/-/./g' ||
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+  )
+}
+
 
 package() {
     install -Dm755 "$srcdir/lazyupdate.sh" "$pkgdir/usr/bin/lzu"
