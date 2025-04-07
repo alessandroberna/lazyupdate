@@ -358,7 +358,7 @@ sanitizeFlags() {
 	local previous_flag=""
 	for flag in "${cascading_flags[@]}"; do
 		var="_arg_${flag}"
-		if [ $cascading ]; then
+		if [ "$cascading" = true ]; then
 			log "Setting $flag to off since $previous_flag is off" 1
 			eval "$var=off"
 		fi
