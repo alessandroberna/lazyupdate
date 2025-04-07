@@ -284,11 +284,11 @@ runHooks() {
 		# shellcheck source=/dev/null
 		source "$_arg_config"
 	fi
-	if [ -d "$HOOKDIR" ]; then
+	if [ ! -d "$HOOKDIR" ]; then
 		log "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
 		return
 	fi
-	if [ -d "$HOOKDIR" ]; then
+	if [ ! -d "$HOOKDIR" ]; then
 		log "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
 		return
 	fi
