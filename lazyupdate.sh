@@ -285,8 +285,8 @@ runHooks() {
 		# shellcheck source=/dev/null
 		source "$_arg_config"
 	fi
-	local pkgname
-	pkgname=$(getPKGNAME)
+	# shellcheck disable=SC1091
+	source PKGBUILD
 	if [ ! -d "$HOOKDIR" ]; then
 		log "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
 		return
