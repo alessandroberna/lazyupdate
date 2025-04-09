@@ -190,8 +190,6 @@ handle_passed_args_count
 # GLOBALS
 GUM=false
 
-
-
 # Prints according to verbosity level
 # Levels: 1 - info (argbash makes it start from 1)
 #         2 - debug
@@ -201,7 +199,7 @@ GUM=false
 # Outputs:
 #   Prints to stdout
 log() {
-	if [ "$_arg_quiet" = "on" ] || [ "$2" -gt $_arg_verbose  ]; then
+	if [ "$_arg_quiet" = "on" ] || [ "$2" -gt $_arg_verbose ]; then
 		return
 	fi
 	local log_level_name=""
@@ -215,7 +213,7 @@ log() {
 	else
 		local time
 		time=$(date +"%T")
-			printf "[%s] %s: %s\n" "$time" "${log_level_name^^}" "$1"
+		printf "[%s] %s: %s\n" "$time" "${log_level_name^^}" "$1"
 	fi
 }
 
@@ -236,7 +234,7 @@ gumSpinner() {
 		if [ "$_arg_quiet" = "off" ]; then
 			printArg="--show-output"
 		fi
-		log "gum spin --title $message $printArg -- $*"  2
+		log "gum spin --title $message $printArg -- $*" 2
 		gum spin --title "$message" "$printArg" -- "$@"
 	else
 		if [ "$_arg_quiet" = "off" ]; then
@@ -285,8 +283,16 @@ runHooks() {
 		# shellcheck source=/dev/null
 		source "$_arg_config"
 	fi
+
 	# shellcheck disable=SC1091
 	source PKGBUILD
+
+	# shell options needed for file discovery, see https://stackoverflow.com/a/51695388
+	shopt -s nullglob extglob globstar
+	# remove trailing slashes from hookdir
+	# multiple traling slashes are not an issue, however they look bad in logs
+	HOOKDIR="${HOOKDIR%%+(/)}"
+
 	if [ ! -d "$HOOKDIR" ]; then
 		log "$HOOKDIR does not exist or cannot be read, skipping hooks" 0
 		return
@@ -299,15 +305,12 @@ runHooks() {
 		log "No hooks found for $pkgname, skipping" 1
 		return
 	fi
-	# populate an array with all hooks with extensions present in HOOKEXTS
-	# first i create a pattern like ".sh|.py" from HOOKEXTS
-	# then i leverage bash extended globbing to populate the hooks array
-	shopt -s nullglob extglob
-	local ext_pattern
-	ext_pattern=$(IFS="|"; echo "${HOOKEXTS[*]}")
-	log "extglob pattern used to lookup hooks: $ext_pattern" 2
-	hooks=( "$HOOKDIR/$pkgname"/*@(${ext_pattern}) )
-	shopt -u nullglob extglob
+	local hooks=()
+	for ext in "${HOOKEXTS[@]}"; do
+		hooks+=("$HOOKDIR/$pkgname"/**/*."$ext")
+	done
+	shopt -u nullglob extglob globstar
+	
 	if [ ${#hooks[@]} -eq 0 ]; then
 		log "No hooks found for $pkgname, skipping" 1
 		return
@@ -454,7 +457,7 @@ chooseEditor() {
 		fi
 	done
 
-	selectedEditor=$(gum filter --placeholder "Choose an editor" --limit 1 "${installedEditors[@]}") #--height 20 --width 40 
+	selectedEditor=$(gum filter --placeholder "Choose an editor" --limit 1 "${installedEditors[@]}") #--height 20 --width 40
 	if [ -z "$selectedEditor" ]; then
 		die "Internal error: no editor selected" 1
 	fi
@@ -502,7 +505,7 @@ editConfig() {
 		}
 	fi
 	if [ ! -d "$HOOKDIR" ]; then
-		if (gum confirm "HOOKDIR is specified in the config file but does not exist. Do you want to create it?"); then 
+		if (gum confirm "HOOKDIR is specified in the config file but does not exist. Do you want to create it?"); then
 			createHookDir "$HOOKDIR"
 		else
 			exit 0
