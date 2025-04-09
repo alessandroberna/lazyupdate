@@ -68,7 +68,7 @@ Example configuration:
 ```bash
 # /etc/lazyupdate.conf
 HOOKDIR="$HOME/repos/lzhooks"
-HOOKEXTS="*.sh *.bash *.zsh *.fish *.py"
+HOOKEXTS=("sh" "bash" "zsh" "fish" "py")
 ```
 
 ### Hook Scripts 

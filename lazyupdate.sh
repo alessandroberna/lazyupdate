@@ -310,7 +310,6 @@ runHooks() {
 		hooks+=("$HOOKDIR/$pkgname"/**/*."$ext")
 	done
 	shopt -u nullglob extglob globstar
-	
 	if [ ${#hooks[@]} -eq 0 ]; then
 		log "No hooks found for $pkgname, skipping" 1
 		return
@@ -413,7 +412,7 @@ createDefaultConfig() {
 # HOOKEXTS: Allowed extensions for hooks. All files matching this pattern will be executed.
 #           Lazyupdate will simply execute the file(s), use shebangs and make sure files are executable
 HOOKDIR="$HOME/repos/lzhooks"
-HOOKEXTS=("*.sh" "*.bash" "*.zsh" "*.fish" "*.py")
+HOOKEXTS=("sh" "bash" "zsh" "fish" "py")
 EOF
 	)
 	if gum confirm "Automatic config creation requires sudo privileges. Do you want to proceed?"; then
