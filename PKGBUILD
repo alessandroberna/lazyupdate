@@ -1,7 +1,7 @@
 #Maintainer: Alessandro Bernardello <aleberna at erine dot eu>
 # shellcheck shell=bash disable=SC2034,SC2154
 pkgname=lazyupdate-git
-pkgver=r30.9dc1c65
+pkgver=r40.f7addbd
 pkgrel=1
 pkgdesc="Automates updating PKGBUILDS"
 arch=('any')
@@ -25,6 +25,6 @@ pkgver() {
 
 
 package() {
-    install -Dm755 "$srcdir/lazyupdate.sh" "$pkgdir/usr/bin/lzu"
+    install -Dm755 "$srcdir/lazyupdate/lazyupdate.sh" "$pkgdir/usr/bin/lzu"
     install -Dm644 "$srcdir/lazyupdate.conf" "$pkgdir/etc/lazyupdate.conf"
 }
