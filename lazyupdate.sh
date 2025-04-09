@@ -255,17 +255,6 @@ getPKGNAME() {
 	echo "$pkgname"-"$pkgver"-"$pkgrel"-"$CARCH""$PKGEXT"
 }
 
-# Installs a compiled package in the current directory
-# Inputs:
-#   None
-# Globals:
-#   None
-# Outputs:
-#   None
-install() {
-	sudo pacman --noconfirm -U "$(getPKGNAME)"
-}
-
 # Reads config for HOOKDIR and runs hooks corresponding
 # to the current package, if found
 # Inputs:
@@ -333,11 +322,30 @@ runHooks() {
 # Outputs:
 #   None
 bumpVersion() {
-	log "Updating PKGBUILD" 1
+	if [ ! -f PKGBUILD ]; then
+		die "PKGBUILD not found" 1
+	fi
 	# shellcheck disable=SC2154
 	gumSpinner "Updating PKGBUILD" sed -i "s/^\(pkgver=\).*/\1${_arg_version}/" PKGBUILD
 	gumSpinner "Updating checksums" updpkgsums
 	gumSpinner "Generating .SRCINFO" makepkg --printsrcinfo >.SRCINFO
+}
+
+installPkg() {
+	# shellcheck disable=SC1091
+	source PKGBUILD
+
+	# uninstalls conflicting packages
+	# --force flag has been removed long ago
+	if [ -n "$conflicts" ]; then
+		for conflict in $conflicts; do
+			if pacman -Qq "$conflict" >/dev/null 2>&1; then
+				gumSpinner "Uninstalling conflicting package: $conflict" sudo pacman --noconfirm -R "$conflict"
+			fi
+		done
+	fi
+
+	gumSpinner "Installing Package"	sudo pacman --noconfirm -U "$(getPKGNAME)"
 }
 
 updatePkg() {
@@ -349,7 +357,7 @@ updatePkg() {
 		gumSpinner "Building package" makepkg -f
 		gumSpinner "Running namcap on package" namcap "$(getPKGNAME)"
 		if [ "$_arg_install" = "on" ]; then
-			install
+			installPkg
 		fi
 	fi
 	if [ "$_arg_hooks" = "on" ]; then
