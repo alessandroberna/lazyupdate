@@ -11,7 +11,7 @@ set -e
 # ARG_OPTIONAL_BOOLEAN([edit-config],[e],[edit the config file interactively],[off])
 # ARG_VERBOSE([v])
 # ARG_POSITIONAL_DOUBLEDASH([])
-# ARG_POSITIONAL_SINGLE([version],[version to write in the pkgbuild])
+# ARG_POSITIONAL_SINGLE([version],[version to write in the pkgbuild],[""])
 # ARG_HELP([An helper tool to update pkgbuilds.])
 # ARGBASH_GO()
 # needed because of Argbash --> m4_ignore([
@@ -44,6 +44,7 @@ _arg_install="on"
 _arg_hooks="on"
 _arg_edit_config="off"
 _arg_verbose=0
+_arg_version=""
 
 print_help() {
 	printf '%s\n' "An helper tool to update pkgbuilds."
@@ -182,7 +183,9 @@ handle_passed_args_count() {
 		return
 	fi
 	local _required_args_string="'version'"
-	test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
+	# i don't actually need the positional argument to be mandatory
+	# there is no built-in way to have optional postionals with argbash
+	#test "${_positionals_count}" -ge 1 || _PRINT_HELP=yes die "FATAL ERROR: Not enough positional arguments - we require exactly 1 (namely: $_required_args_string), but got only ${_positionals_count}." 1
 	test "${_positionals_count}" -le 1 || _PRINT_HELP=yes die "FATAL ERROR: There were spurious positional arguments --- we expect exactly 1 (namely: $_required_args_string), but got ${_positionals_count} (the last one was: '${_last_positional}')." 1
 }
 handle_passed_args_count
@@ -349,7 +352,11 @@ installPkg() {
 }
 
 updatePkg() {
-	bumpVersion
+	if [ "$_arg_version" != "" ]; then
+		bumpVersion
+	else
+		log "Version not specified. Skipped updating the PKGBUILD" 1
+	fi
 	if [ $_arg_check = "on" ]; then
 		gumSpinner "Running namcap on PKGBUILD" namcap PKGBUILD
 	fi
