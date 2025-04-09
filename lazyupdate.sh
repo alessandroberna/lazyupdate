@@ -340,14 +340,20 @@ installPkg() {
 
 	# uninstalls conflicting packages
 	# --force flag has been removed long ago
-	if [ -n "$conflicts" ]; then
-		for conflict in $conflicts; do
-			if pacman -Qq "$conflict" >/dev/null 2>&1; then
-				gumSpinner "Uninstalling conflicting package: $conflict" sudo pacman --noconfirm -R "$conflict"
-			fi
-		done
+	# a package specified in conflicts can be provided by a package with a different name
+	# alternatively a package could provide the same package we are trying to install, but with a different pkgname. 
+	# it's thus necessary to query pacman to avoid running into package conflicts
+	if [ -z "$conflicts" ]; then
+		conflicts=$pkgname
 	fi
-
+	for conflicting_top in $conflicts; do
+		# this can return multiple things
+ 		readarray -t conflicting_single < <(pacman -Qq "$conflicting_top" 2>/dev/null)
+		log "Conflicting packages: ${conflicting_single[*]}" 1
+		for conflict in "${conflicting_single[@]}"; do
+			gumSpinner "Uninstalling conflicting package: $conflict" sudo pacman --noconfirm -R "$conflict"
+		done
+	done
 	gumSpinner "Installing Package"	sudo pacman --noconfirm -U "$(getPKGNAME)"
 }
 
